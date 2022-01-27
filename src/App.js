@@ -3,9 +3,17 @@ import DateTimePicker from 'react-datetime-picker';
 import './App.css';
 
 import NamiWalletApi, { Cardano } from './nami-js';
-import blockfrostApiKey from '../config.js'; 
+import blockfrostApiKey from '../config.js';
+import * as ms from '@emurgo/cardano-message-signing-asmjs';
 let nami;
 
+function toByteArray(hexString) {
+    var result = [];
+    for (var i = 0; i < hexString.length; i += 2) {
+        result.push(parseInt(hexString.substr(i, 2), 16));
+    }
+    return result;
+}
 
 export default function App() {
     const [connected, setConnected] = useState()
@@ -54,13 +62,59 @@ export default function App() {
     }, [])
 
 
+    function toHex(str) {
+        var result = '';
+        for (var i=0; i<str.length; i++) {
+            result += str.charCodeAt(i).toString(16);
+        }
+        console.log(result)
+        return result;
+    }
 
-   
     const connect = async () => {
         // Connects nami wallet to current website 
-        await nami.enable()
-            .then(result => setConnected(result))
-            .catch(e => console.log(e))
+        // await nami.enable()
+        //     .then(result => setConnected(result))
+        //     .catch(e => console.log(e))
+        // console.log({ namiAddr: await nami.getAddress()})
+        const api = await window.cardano.nami.enable();
+        // console.log(api)
+        // console.log({ network: await api.getNetworkId() })
+        // console.log({ balance: await api.getBalance() })
+        // console.log({ changeAddress: await api.getChangeAddress() })
+        // console.log({ getUsedAddresses: await api.getUsedAddresses() })
+        // console.log({ getUnusedAddresses: await api.getUnusedAddresses() })
+        // console.log({ rewardAddresses: await api.getRewardAddresses() })
+        // let payload = 'message to sign';
+        // const signedData = await api.signData(await api.getRewardAddresses()[0], toHex(payload))
+        // console.log({ signedData })
+        // import * as ms from '@emurgo/cardano-message-signing-browser';
+        // const ms = require('@emurgo/cardano-message-signing-browser');
+        // let protected_headers = ms.HeaderMap.new();
+        // let protected_serialized = ms.ProtectedHeaderMap.new(protected_headers);
+        // let unprotected = ms.HeaderMap.new();
+        // let headers = ms.Headers.new(protected_serialized, unprotected);
+        // let payload = new TextEncoder().encode('message to sign');
+        // let external_aad = new TextEncoder().encode('externally supplied data not in sign object');
+        // let builder = ms.COSESign1Builder.new(headers, payload, false);
+        // builder.set_external_aad(external_aad);
+        // let to_sign = builder.make_data_to_sign().to_bytes();
+        // console.log({ payload, external_aad, to_sign });
+        // const cardano = window.cardano;
+        // let payload = 'message to sign';
+        const payload = toByteArray('846a5369676e6174757265315846a20127676164647265737358390091e4c8bb')
+        const address = await api.getChangeAddress();
+        // console.log({ address });
+        const signedData = await api.signData(address, payload);
+        console.log({ signedData, address });
+        // const core_sign1 = ms.COSESign1.from_bytes(signedData);
+        // const payload1 = core_sign1.payload();
+        // const headers = core_sign1.headers();
+        // const signature = core_sign1.signature();
+        // console.log({ payload1, headers, signature });
+        // const address = (await api.getUsedAddresses())[0];
+        // console.log({ address });
+        // const signedData = await api.signData(address, to_sign);
     }
 
     const getAddress = async () => {
@@ -153,6 +207,7 @@ export default function App() {
 
         const witnesses = await nami.signTx(transaction)
         setWitnesses(witnesses)
+        console.log(witnesses)
     }
 
     const submitTransaction = async () => {
